@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SUPER ASTEROIDS</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { font-family: "Courier New", monospace; color: #7ef9ff; user-select: none; }
+  canvas { display: block; }
+  #hud { position: fixed; top: 16px; left: 20px; right: 20px; display: flex; gap: 32px; font-size: 15px; letter-spacing: 2px; text-shadow: 0 0 10px rgba(126,249,255,.7); pointer-events: none; }
+  #hud span:last-child { margin-left: auto; }
+  #overlay, #gameover, #paused { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; text-align: center; background: rgba(0,1,8,.55); }
+  #overlay { background: rgba(0,1,8,.35); justify-content: flex-end; padding-bottom: 60px; }
+  #overlay h1, #gameover h1 { font-size: 42px; letter-spacing: 12px; margin: 0; text-shadow: 0 0 24px rgba(126,249,255,.8); }
+  #overlay p { margin: 0; font-size: 15px; letter-spacing: 3px; line-height: 2; opacity: .85; }
+  #gameover h1 { color: #ff5c8a; text-shadow: 0 0 24px rgba(255,92,138,.8); }
+  #paused { background: rgba(0,1,8,.4); font-size: 30px; letter-spacing: 10px; }
+  .blink { animation: blink 1.3s infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+</style>
+</head>
+<body>
+  <div id="hud">
+    <span id="score">SCORE 0</span>
+    <span id="lives">SHIPS ▲▲▲</span>
+    <span id="power" style="display:none"></span>
+    <span id="level">WAVE 1</span>
+  </div>
+  <div id="overlay">
+    <p>ARROWS / WASD &mdash; ROTATE &amp; THRUST<br/>SPACE &mdash; FIRE&nbsp;&nbsp;&nbsp;P / ESC &mdash; PAUSE</p>
+    <p class="blink">CLICK OR PRESS ENTER TO START</p>
+  </div>
+  <div id="gameover" style="display:none">
+    <h1>GAME OVER</h1>
+    <p id="final">FINAL SCORE 0</p>
+    <p class="blink">PRESS ENTER TO RESTART</p>
+  </div>
+  <div id="paused" style="display:none">PAUSED</div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
