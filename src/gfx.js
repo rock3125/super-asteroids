@@ -181,6 +181,9 @@ function createStarfield() {
   };
 }
 
+const TITLE_HUE_SPEED = 0.12;   // full spectrum every ~8s
+const TITLE_HUE_SPREAD = 0.85;  // hue span from first letter to last
+
 const TITLE_FONT = {
   S: ['.XXX.', 'X...X', 'X....', '.XXX.', '....X', 'X...X', '.XXX.'],
   U: ['X...X', 'X...X', 'X...X', 'X...X', 'X...X', 'X...X', '.XXX.'],
@@ -216,7 +219,7 @@ function createTitle() {
   }
   const boxGeom = new THREE.BoxGeometry(CELL, CELL, DEPTH);
   const faceMat = new THREE.MeshBasicMaterial({
-    color: 0x0d2b3d,
+    color: 0xffffff,
     transparent: true,
     opacity: 0.85,
   });
@@ -256,10 +259,13 @@ function createTitle() {
       }
     }
   });
+  const edgeCol = new Float32Array(cells.length * 12 * 2 * 3);
   const edgeGeom = new THREE.BufferGeometry();
   edgeGeom.setAttribute('position', new THREE.BufferAttribute(edgePos, 3));
+  edgeGeom.setAttribute('color', new THREE.BufferAttribute(edgeCol, 3));
   const edgeMat = new THREE.LineBasicMaterial({
-    color: 0x7ef9ff,
+    color: 0xffffff,
+    vertexColors: true,
     blending: THREE.AdditiveBlending,
     transparent: true,
     opacity: 0.9,
@@ -272,6 +278,29 @@ function createTitle() {
   group.rotation.x = -0.42;
   let scale = 1;
   let time = 0;
+  // per-cell hue offset so the spectrum sweeps left-to-right across the letters
+  const cellPhase = cells.map(([x]) => x / (maxX + 1));
+  const edgeColAttr = edgeGeom.getAttribute('color');
+  const hueColor = new THREE.Color();
+  const faceColor = new THREE.Color();
+
+  function paint() {
+    let o = 0;
+    for (let i = 0; i < cells.length; i++) {
+      const h = (time * TITLE_HUE_SPEED - cellPhase[i] * TITLE_HUE_SPREAD) % 1;
+      hueColor.setHSL(h < 0 ? h + 1 : h, 1, 0.55);
+      faceColor.setRGB(hueColor.r * 0.16, hueColor.g * 0.16, hueColor.b * 0.16);
+      boxes.setColorAt(i, faceColor);
+      for (let v = 0; v < 24; v++) {
+        edgeCol[o++] = hueColor.r;
+        edgeCol[o++] = hueColor.g;
+        edgeCol[o++] = hueColor.b;
+      }
+    }
+    boxes.instanceColor.needsUpdate = true;
+    edgeColAttr.needsUpdate = true;
+  }
+  paint();
   return {
     group,
     fit(halfW) {
@@ -283,6 +312,7 @@ function createTitle() {
       time += dt;
       group.rotation.y = Math.sin(time * 0.3) * 0.06;
       group.position.y = 150 + Math.sin(time * 0.5) * 8;
+      paint();
     },
   };
 }
