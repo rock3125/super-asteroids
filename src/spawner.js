@@ -5,6 +5,8 @@ import {
   NEAR_TARGET_MAX,
   ROCK_TRICKLE_INTERVAL,
   ROCK_BURST_INTERVAL,
+  SUPER_CAP_MAX,
+  SAUCER_CAP_MAX,
 } from './config.js';
 
 export class Spawner {
@@ -33,15 +35,16 @@ export class Spawner {
     }
     this.superTimer -= dt;
     if (this.superTimer <= 0) {
-      this.superTimer = 45 + Math.random() * 25;
-      let hasSuper = false;
-      for (const a of world.asteroids) if (a.alive && a.tier === 'super') hasSuper = true;
-      if (!hasSuper) world.spawnAsteroid('super');
+      this.superTimer = 35 + Math.random() * 20;
+      const superCap = Math.min(1 + Math.floor(level / 3), SUPER_CAP_MAX);
+      let superCount = 0;
+      for (const a of world.asteroids) if (a.alive && a.tier === 'super') superCount++;
+      if (superCount < superCap) world.spawnAsteroid('super');
     }
     this.saucerTimer -= dt;
     if (this.saucerTimer <= 0) {
-      this.saucerTimer = Math.max(7, 20 - level * 1.5) * (0.75 + Math.random() * 0.6);
-      const cap = level >= 4 ? 2 : 1;
+      this.saucerTimer = Math.max(4, 18 - level * 1.5) * (0.75 + Math.random() * 0.6);
+      const cap = Math.min(1 + Math.floor(level / 2), SAUCER_CAP_MAX);
       if (world.saucers.length < cap) world.spawnSaucer(level);
     }
   }

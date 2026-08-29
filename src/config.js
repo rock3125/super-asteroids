@@ -36,8 +36,11 @@ export const SAUCER_SCORE = 500;
 export const SAUCER_FIRE_INTERVAL = 1.3;
 export const SAUCER_BULLET_SPEED = 480;
 
+export const SUPER_CAP_MAX = 3;
+export const SAUCER_CAP_MAX = 6;
+
 export const ASTEROID_TIERS = {
-  super: { radius: 96, hp: 12, speed: 20, spin: 0.35, score: 1000, child: 'large', children: 2, color: 0xff5c8a, jitter: 0.32 },
+  super: { radius: 120, hp: 14, speed: 20, spin: 0.35, score: 1500, child: 'large', children: 2, color: 0xff5c8a, jitter: 0.32 },
   large: { radius: 58, hp: 4, speed: 46, spin: 0.7, score: 100, child: 'medium', children: 2, color: 0x8fbcff, jitter: 0.28 },
   medium: { radius: 32, hp: 2, speed: 66, spin: 1.1, score: 50, child: 'small', children: 2, color: 0x9ecbff, jitter: 0.26 },
   small: { radius: 15, hp: 1, speed: 98, spin: 1.6, score: 20, child: null, children: 0, color: 0xbfe0ff, jitter: 0.24 },
