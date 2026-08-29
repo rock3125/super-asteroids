@@ -23,10 +23,8 @@ import {
   LASER_COOLDOWN,
   LASER_DAMAGE,
   MULTISHOT_SPREAD,
-  MAX_FUMES,
-  FUME_PALETTE,
 } from './config.js';
-import { Player, Bullet, Asteroid, Saucer, Upgrade, LaserBeam, ParticleSystem, FumeSystem } from './entities.js';
+import { Player, Bullet, Asteroid, Saucer, Upgrade, LaserBeam, ParticleSystem } from './entities.js';
 
 export class World {
   constructor(gfx, audio) {
@@ -34,8 +32,6 @@ export class World {
     this.audio = audio;
     this.player = new Player();
     this.particles = new ParticleSystem(MAX_PARTICLES);
-    this.fumes = new FumeSystem(MAX_FUMES);
-    this.fumeAccum = 0;
     this.asteroids = [];
     this.bullets = [];
     this.saucers = [];
@@ -51,7 +47,6 @@ export class World {
     this.shake = 0;
     gfx.worldGroup.add(this.player.group);
     gfx.worldGroup.add(this.particles.mesh);
-    gfx.worldGroup.add(this.fumes.mesh);
   }
   get level() {
     return 1 + Math.floor(this.time / 30);
@@ -76,8 +71,6 @@ export class World {
     this.activeUpgrade = null;
     this.startShield = 0;
     this.particles.clear();
-    this.fumes.clear();
-    this.fumeAccum = 0;
     this.player.reset();
     this.player.shieldActive = false;
     this.player.group.visible = false;
@@ -194,24 +187,6 @@ export class World {
     if (p.alive) {
       p.update(dt, input);
       if (input.fire) this.firePlayer();
-      if (p.thrust > 0.05) {
-        this.fumeAccum += dt * (30 + p.thrust * 60);
-        const dir = p.heading();
-        while (this.fumeAccum >= 1) {
-          this.fumeAccum -= 1;
-          const back = dir.clone().negate();
-          const rear = p.pos.clone()
-            .addScaledVector(back, PLAYER_RADIUS + 10)
-            .add(new THREE.Vector2((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10));
-          const speed = 150 + Math.random() * 120;
-          const vel = new THREE.Vector2(
-            p.vel.x + back.x * speed + (Math.random() - 0.5) * 30,
-            p.vel.y + back.y * speed + (Math.random() - 0.5) * 30
-          );
-          const color = FUME_PALETTE[(Math.random() * FUME_PALETTE.length) | 0];
-          this.fumes.emit(rear, vel, color, 140 + Math.random() * 160);
-        }
-      }
     } else if (this.respawnTimer > 0) {
       this.respawnTimer -= dt;
     } else if (this.lives > 0) {
@@ -242,7 +217,6 @@ export class World {
       }
     }
     this.particles.update(dt);
-    this.fumes.update(dt);
     this.collide();
     this.cleanup();
     if (this.shake > 0) {
@@ -257,7 +231,6 @@ export class World {
     for (const s of this.saucers) s.update(dt, p.pos);
     for (const u of this.upgrades) u.update(dt);
     this.particles.update(dt);
-    this.fumes.update(dt);
     this.cleanup();
     this.gfx.worldGroup.position.set(-p.pos.x, -p.pos.y, 0);
   }
@@ -400,7 +373,6 @@ export class World {
     for (const e of this.upgrades) e.pos.add(shift);
     for (const e of this.beams) e.pos.add(shift);
     this.particles.shift(shift.x, shift.y);
-    this.fumes.shift(shift.x, shift.y);
     const safe = 240;
     for (const a of this.asteroids) {
       const d = a.pos.length();

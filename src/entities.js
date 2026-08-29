@@ -49,7 +49,23 @@ function getNoiseTexture() {
 }
 
 const SHIP_POINTS = [[0, 18], [12, -12], [5, -9], [-5, -9], [-12, -12], [0, 18]];
-const FLAME_POINTS = [[0, 0], [0, -20]];
+
+function makeFlameCone(halfWidth, length, color, opacity) {
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute([-halfWidth, 0, 0, halfWidth, 0, 0, 0, -length, 0], 3)
+  );
+  const mat = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  return new THREE.Mesh(geom, mat);
+}
 const SAUCER_BODY = [[-19, 0], [19, 0], [13, 7], [-13, 7], [-19, 0]];
 const SAUCER_DOME = [[-9, 7], [0, 15], [9, 7]];
 
@@ -67,8 +83,14 @@ export class Player {
     this.group = new THREE.Group();
     this.group.visible = false;
     this.ship = makeLineLoop(SHIP_POINTS.map(([x, y]) => vec3(x, y)), 0x7ef9ff);
-    this.flame = makeLine(FLAME_POINTS.map(([x, y]) => vec3(x, y)), 0xffa94d);
+    this.flame = new THREE.Group();
+    this.flameOuter = makeFlameCone(8, 28, 0xff7a2a, 0.8);
+    this.flameInner = makeFlameCone(4.5, 17, 0xffe14d, 0.95);
+    this.flameInner.position.z = 0.1;
+    this.flame.add(this.flameOuter);
+    this.flame.add(this.flameInner);
     this.flame.position.set(0, -10, 0);
+    this.flamePhase = Math.random() * Math.PI * 2;
     this.group.add(this.ship);
     this.group.add(this.flame);
     this.shieldGroup = new THREE.Group();
@@ -107,14 +129,21 @@ export class Player {
     this.cooldown = Math.max(0, this.cooldown - dt);
     this.invuln = Math.max(0, this.invuln - dt);
     this.shieldSpin += dt * SHIELD_SPIN;
+    this.flamePhase += dt * 34;
     this.sync();
   }
   sync() {
     this.group.position.set(this.pos.x, this.pos.y, 0);
     this.group.rotation.z = -this.angle;
-    const s = this.thrust > 0.02 ? this.thrust * (0.75 + Math.random() * 0.45) : 0;
-    this.flame.visible = s > 0.05;
-    this.flame.scale.y = Math.max(0.25, s);
+    const t = this.thrust;
+    this.flame.visible = t > 0.05;
+    if (this.flame.visible) {
+      const flick = 0.8 + 0.2 * Math.sin(this.flamePhase) + (Math.random() - 0.5) * 0.25;
+      this.flame.scale.set(0.75 + t * 0.35 + (Math.random() - 0.5) * 0.12, Math.max(0.25, t * flick), 1);
+      this.flameOuter.material.opacity = 0.45 + 0.4 * t * flick;
+      this.flameInner.material.opacity = 0.6 + 0.35 * t * flick;
+      this.flameInner.scale.y = 0.85 + 0.3 * Math.sin(this.flamePhase * 1.7 + 1.3);
+    }
     this.ship.visible = this.invuln <= 0 || Math.floor(this.invuln * 12) % 2 === 0;
     this.shieldPulse += 0.05;
     this.shieldGroup.visible = this.shieldActive;
@@ -489,136 +518,6 @@ export class ParticleSystem {
     this.vel[i * 2 + 1] = this.vel[last * 2 + 1];
     this.life[i] = this.life[last];
     this.maxLife[i] = this.maxLife[last];
-  }
-  shift(dx, dy) {
-    for (let i = 0; i < this.count; i++) {
-      this.pos[i * 3] += dx;
-      this.pos[i * 3 + 1] += dy;
-    }
-    this.attrPos.needsUpdate = true;
-  }
-  clear() {
-    this.count = 0;
-    this.geom.setDrawRange(0, 0);
-  }
-}
-
-let fumeTexture = null;
-function getFumeTexture() {
-  if (fumeTexture) return fumeTexture;
-  const c = document.createElement('canvas');
-  c.width = c.height = 64;
-  const ctx = c.getContext('2d');
-  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-  g.addColorStop(0, 'rgba(255,255,255,1)');
-  g.addColorStop(0.3, 'rgba(255,255,255,0.55)');
-  g.addColorStop(0.7, 'rgba(255,255,255,0.12)');
-  g.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 64, 64);
-  fumeTexture = new THREE.CanvasTexture(c);
-  return fumeTexture;
-}
-
-export class FumeSystem {
-  constructor(max) {
-    this.max = max;
-    this.count = 0;
-    this.pos = new Float32Array(max * 3);
-    this.col = new Float32Array(max * 3);
-    this.base = new Float32Array(max * 3);
-    this.vel = new Float32Array(max * 2);
-    this.life = new Float32Array(max);
-    this.maxLife = new Float32Array(max);
-    this.maxDist = new Float32Array(max);
-    this.dist = new Float32Array(max);
-    this.attrPos = new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage);
-    this.attrCol = new THREE.BufferAttribute(this.col, 3).setUsage(THREE.DynamicDrawUsage);
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute('position', this.attrPos);
-    geom.setAttribute('color', this.attrCol);
-    this.geom = geom;
-    const mat = new THREE.PointsMaterial({
-      size: 26,
-      map: getFumeTexture(),
-      vertexColors: true,
-      sizeAttenuation: false,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-    this.mesh = new THREE.Points(geom, mat);
-    this.mesh.frustumCulled = false;
-  }
-  emit(pos, vel, color, maxDist) {
-    const c = new THREE.Color(color);
-    const i = this.count < this.max ? this.count++ : (Math.random() * this.count) | 0;
-    this.pos[i * 3] = pos.x;
-    this.pos[i * 3 + 1] = pos.y;
-    this.pos[i * 3 + 2] = 0;
-    this.vel[i * 2] = vel.x;
-    this.vel[i * 2 + 1] = vel.y;
-    this.dist[i] = 0;
-    this.maxDist[i] = maxDist;
-    const l = 2.2 + Math.random() * 1.8;
-    this.life[i] = l;
-    this.maxLife[i] = l;
-    const v = 0.35 + Math.random() * 0.3;
-    this.base[i * 3] = c.r * v;
-    this.base[i * 3 + 1] = c.g * v;
-    this.base[i * 3 + 2] = c.b * v;
-    this.col[i * 3] = this.base[i * 3];
-    this.col[i * 3 + 1] = this.base[i * 3 + 1];
-    this.col[i * 3 + 2] = this.base[i * 3 + 2];
-    this.attrPos.needsUpdate = true;
-    this.attrCol.needsUpdate = true;
-    this.geom.setDrawRange(0, this.count);
-  }
-  update(dt) {
-    for (let i = this.count - 1; i >= 0; i--) {
-      this.life[i] -= dt;
-      if (this.life[i] <= 0 || this.dist[i] >= this.maxDist[i]) {
-        this.removeAt(i);
-        continue;
-      }
-      const dx = this.vel[i * 2] * dt;
-      const dy = this.vel[i * 2 + 1] * dt;
-      this.pos[i * 3] += dx;
-      this.pos[i * 3 + 1] += dy;
-      this.dist[i] += Math.hypot(dx, dy);
-      this.vel[i * 2] *= Math.pow(0.94, dt * 60);
-      this.vel[i * 2 + 1] *= Math.pow(0.94, dt * 60);
-      this.vel[i * 2] += (Math.random() - 0.5) * 60 * dt;
-      this.vel[i * 2 + 1] += (Math.random() - 0.5) * 60 * dt;
-      const f = Math.max(0, 1 - this.dist[i] / this.maxDist[i]);
-      const lf = Math.min(1, this.life[i] / (this.maxLife[i] * 0.4));
-      const b = f * f * lf;
-      this.col[i * 3] = this.base[i * 3] * b;
-      this.col[i * 3 + 1] = this.base[i * 3 + 1] * b;
-      this.col[i * 3 + 2] = this.base[i * 3 + 2] * b;
-    }
-    this.attrPos.needsUpdate = true;
-    this.attrCol.needsUpdate = true;
-    this.geom.setDrawRange(0, this.count);
-  }
-  removeAt(i) {
-    const last = --this.count;
-    if (i === last) return;
-    this.pos[i * 3] = this.pos[last * 3];
-    this.pos[i * 3 + 1] = this.pos[last * 3 + 1];
-    this.pos[i * 3 + 2] = this.pos[last * 3 + 2];
-    this.col[i * 3] = this.col[last * 3];
-    this.col[i * 3 + 1] = this.col[last * 3 + 1];
-    this.col[i * 3 + 2] = this.col[last * 3 + 2];
-    this.base[i * 3] = this.base[last * 3];
-    this.base[i * 3 + 1] = this.base[last * 3 + 1];
-    this.base[i * 3 + 2] = this.base[last * 3 + 2];
-    this.vel[i * 2] = this.vel[last * 2];
-    this.vel[i * 2 + 1] = this.vel[last * 2 + 1];
-    this.life[i] = this.life[last];
-    this.maxLife[i] = this.maxLife[last];
-    this.dist[i] = this.dist[last];
-    this.maxDist[i] = this.maxDist[last];
   }
   shift(dx, dy) {
     for (let i = 0; i < this.count; i++) {
