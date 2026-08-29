@@ -93,14 +93,26 @@ export class World {
     if (!pos) {
       const vpr = this.gfx.viewportRadius();
       const r = vpr * (SPAWN_MIN_FACTOR + Math.random() * (SPAWN_MAX_FACTOR - SPAWN_MIN_FACTOR));
-      const an = Math.random() * Math.PI * 2;
+      const pv = this.player.vel;
+      let an;
+      if (pv.lengthSq() > 120 * 120) {
+        an = Math.atan2(pv.y, pv.x) + (Math.random() * 2 - 1) * Math.PI * 0.6;
+      } else {
+        an = Math.random() * Math.PI * 2;
+      }
       pos = this.player.pos.clone().add(
         new THREE.Vector2(Math.cos(an), Math.sin(an)).multiplyScalar(r)
       );
     }
     if (!vel) {
       const sp = cfg.speed * (1 + (this.level - 1) * 0.06);
-      const an = Math.random() * Math.PI * 2;
+      const toPlayer = new THREE.Vector2().subVectors(this.player.pos, pos);
+      let an;
+      if (toPlayer.lengthSq() > 1) {
+        an = Math.atan2(toPlayer.y, toPlayer.x) + (Math.random() * 2 - 1) * Math.PI * 0.5;
+      } else {
+        an = Math.random() * Math.PI * 2;
+      }
       vel = new THREE.Vector2(Math.cos(an), Math.sin(an)).multiplyScalar(sp);
     }
     const a = new Asteroid(tier, pos, vel);

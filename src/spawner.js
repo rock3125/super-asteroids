@@ -1,18 +1,36 @@
+import {
+  NEAR_RADIUS_FACTOR,
+  NEAR_TARGET_BASE,
+  NEAR_TARGET_PER_LEVEL,
+  NEAR_TARGET_MAX,
+  ROCK_TRICKLE_INTERVAL,
+  ROCK_BURST_INTERVAL,
+} from './config.js';
+
 export class Spawner {
   constructor() {
     this.superTimer = 30;
     this.saucerTimer = 15;
+    this.rockTimer = 0;
   }
   reset() {
     this.superTimer = 30;
     this.saucerTimer = 15;
+    this.rockTimer = 0;
   }
   update(dt, world) {
     const level = world.level;
-    const target = Math.min(10 + level * 3, 28);
-    let rockCount = 0;
-    for (const a of world.asteroids) if (a.alive) rockCount++;
-    if (rockCount < target) world.spawnAsteroid('large');
+    const nearRadius = world.gfx.viewportRadius() * NEAR_RADIUS_FACTOR;
+    const target = Math.min(NEAR_TARGET_BASE + level * NEAR_TARGET_PER_LEVEL, NEAR_TARGET_MAX);
+    let nearCount = 0;
+    for (const a of world.asteroids) {
+      if (a.alive && a.pos.distanceTo(world.player.pos) < nearRadius) nearCount++;
+    }
+    this.rockTimer -= dt;
+    if (nearCount < target && this.rockTimer <= 0) {
+      world.spawnAsteroid('large');
+      this.rockTimer = nearCount < target * 0.5 ? ROCK_BURST_INTERVAL : ROCK_TRICKLE_INTERVAL;
+    }
     this.superTimer -= dt;
     if (this.superTimer <= 0) {
       this.superTimer = 45 + Math.random() * 25;

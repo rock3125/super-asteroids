@@ -43,9 +43,15 @@ export const ASTEROID_TIERS = {
   small: { radius: 15, hp: 1, speed: 98, spin: 1.6, score: 20, child: null, children: 0, color: 0xbfe0ff, jitter: 0.24 },
 };
 
-export const SPAWN_MIN_FACTOR = 1.2;
-export const SPAWN_MAX_FACTOR = 2.0;
-export const DESPAWN_FACTOR = 3.0;
+export const SPAWN_MIN_FACTOR = 1.15;
+export const SPAWN_MAX_FACTOR = 1.6;
+export const DESPAWN_FACTOR = 2.4;
+export const NEAR_RADIUS_FACTOR = 1.8;
+export const NEAR_TARGET_BASE = 9;
+export const NEAR_TARGET_PER_LEVEL = 2;
+export const NEAR_TARGET_MAX = 18;
+export const ROCK_TRICKLE_INTERVAL = 0.35;
+export const ROCK_BURST_INTERVAL = 0.12;
 export const MAX_PARTICLES = 600;
 export const MAX_FUMES = 300;
 export const FUME_PALETTE = [0x7ef9ff, 0x8fbcff, 0x53ffd0, 0xb07fff, 0xffa94d];
