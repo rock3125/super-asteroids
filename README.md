@@ -2,13 +2,13 @@
 
 A neon vector-style Asteroids game built for the browser with [Three.js](https://threejs.org/) — infinite space, player-centered camera, asteroid splitting, flying saucers, power-ups, and bloom glow.
 
-*Gameplay — the ship at the center of an infinite field, flanked by a giant super asteroid, normal rocks, and a pair of hunting saucers:*
-
-![Gameplay](screenshots/gameplay.png)
-
 *Start screen, with saucers already prowling the ambient world:*
 
 ![Main menu](screenshots/menu.png)
+
+*Gameplay — the ship at the center of an infinite field, flanked by a giant super asteroid, normal rocks, and a pair of hunting saucers:*
+
+![Gameplay](screenshots/gameplay.png)
 
 ## Features
 
